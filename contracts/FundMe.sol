@@ -7,7 +7,7 @@ error NotOwner();
 
 contract FundMe {
     using PriceConverter for uint256;
- 
+
     uint256 public constant MINIMUM_USD = 50 * 1e18;
 
     address[] public funders;
@@ -15,11 +15,33 @@ contract FundMe {
     address public immutable i_owner;
 
     AggregatorV3Interface public priceFeed;
+    modifier onlyOwner() {
+        require(msg.sender == i_owner, "You are not allowed to make this call");
+
+        // for gas efficiency
+        // if(msg.sender != i_owner){
+        //     revert NotOwner();
+        // }
+        _;
+    }
+
+    receive() external payable {
+        fund();
+    }
+
+    fallback() external payable {
+        fund();
+    }
 
     constructor(address priceFeedAddress) {
         i_owner = msg.sender;
         priceFeed = AggregatorV3Interface(priceFeedAddress);
     }
+
+    /**
+        @notice this function funds the contract
+        @dev the pricefeed is also passed in the getConversionRate as a solidity library 
+    */
 
     function fund() public payable {
         require(
@@ -59,23 +81,5 @@ contract FundMe {
             value: address(this).balance
         }("");
         require(sendSuccess, "Failed to withdraw");
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == i_owner, "You are not allowed to make this call");
-
-        // for gas efficiency
-        // if(msg.sender != i_owner){
-        //     revert NotOwner();
-        // }
-        _;
-    }
-
-    receive() external payable {
-        fund();
-    }
-
-    fallback() external payable {
-        fund();
     }
 }
